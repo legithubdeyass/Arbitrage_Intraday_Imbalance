@@ -117,22 +117,14 @@ Le ratio `sum(PnL réalisé) / sum(PnL optimal)` donne la **performance de capta
 
 #### 3.b : Analyse qualitative des décisions
 
-Chaque ligne de prédiction est ensuite classée dans une des 5 catégories suivantes :
+Chaque prédiction est classée dans l’une des 5 catégories suivantes, permettant d’évaluer la pertinence des décisions du modèle dans une logique métier :
 
-| Type de décision             | Description                                                                 |
-|-----------------------------|-----------------------------------------------------------------------------|
-| Bonne prédiction            | Bonne prise de position, dans le bon sens du spread                         |
-| Opportunité manquée         | Le modèle n’a rien fait alors qu’il y avait un spread exploitable           |
-| Mauvaise prise de position  | Le modèle a pris position sans spread exploitable                           |
-| Contre-sens                 | Le modèle a pris position **dans le sens opposé** au spread                 |
-| Neutre                      | Aucune action, et aucun spread exploitable                                  |
+| Type de décision             | Description                                                             | Nombre de cas | Pourcentage |
+|-----------------------------|-------------------------------------------------------------------------|---------------|-------------|
+| Bonne prédiction            | Bonne prise de position, dans le bon sens du spread                     | 6163          | 70.09 %     |
+| Opportunité manquée         | Aucune action du modèle alors qu’un spread exploitable était présent    | 378           | 4.30 %      |
+| Mauvaise prise de position  | Position prise sans opportunité de spread significatif                  | 294           | 3.34 %      |
+| Contre-sens                 | Prise de position dans le **sens opposé** au spread observé             | 1941          | 22.07 %     |
+| Neutre                      | Aucune action du modèle, et aucun spread exploitable                    | 17            | 0.19 %      |
 
-Cette typologie permet une **lecture intuitive** de ce que le modèle réussit ou non, en se plaçant dans la peau d’un trader algorithmique.
-
-Un exemple de résultat :
-
-Bonne prédiction               :  6163  (70.09%)
-Opportunité manquée            :   378  (4.30%)
-Mauvaise prise de position     :   294  (3.34%)
-Contre-sens                    :  1941  (22.07%)
-Neutre                         :    17  (0.19%)
+Cette typologie donne une **lecture intuitive des erreurs du modèle**, et permet d’identifier les cas critiques comme les **contre-sens**, fortement pénalisants économiquement.
