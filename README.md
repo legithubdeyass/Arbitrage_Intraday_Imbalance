@@ -130,3 +130,9 @@ Chaque ligne de prédiction est ensuite classée dans une des 5 catégories suiv
 Cette typologie permet une **lecture intuitive** de ce que le modèle réussit ou non, en se plaçant dans la peau d’un trader algorithmique.
 
 Un exemple de résultat :
+
+Bonne prédiction               :  6163  (70.09%)
+Opportunité manquée            :   378  (4.30%)
+Mauvaise prise de position     :   294  (3.34%)
+Contre-sens                    :  1941  (22.07%)
+Neutre                         :    17  (0.19%)
