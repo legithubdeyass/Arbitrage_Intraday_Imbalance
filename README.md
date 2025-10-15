@@ -1,130 +1,130 @@
 # Arbitrage_Intraday_Imbalance
 
-Ce dépôt GitHub présente ma réponse au Case Study proposé par ENGIE pour un poste de **_Quant / Trading assistant en VIE en Roumanie_**, consistant à concevoir une stratégie algorithmique permettant d’exploiter les **opportunités d’arbitrage** entre le **marché Intraday** et le **mécanisme d’Imbalance**, sur la période Juillet à Décembre 2024.
+This GitHub repository presents my solution to the Case Study proposed by ENGIE for a **_Quant / Trading Assistant VIE position in Romania_**, which involved designing an algorithmic strategy to exploit **arbitrage opportunities** between the **Intraday market** and the **Imbalance mechanism** for the period from July to December 2024.
 
-## Objectif de ce projet
+## Project Objective
 
-Ce projet vise à simuler une **stratégie algorithmique d’optimisation des déséquilibres** sur le marché de l’électricité, dans un contexte réaliste.
+The goal of this project is to simulate an **algorithmic imbalance optimization strategy** on the electricity market under realistic conditions.
 
-À chaque quart d’heure, un trader peut volontairement créer un **déséquilibre** (positif ou négatif) entre la production et la consommation de son portefeuille. Ce déséquilibre sera ensuite réglé par le gestionnaire de réseau, au **prix d’Imbalance**. En choisissant judicieusement ce déséquilibre, le trader peut espérer **profiter d’un arbitrage** favorable entre ce prix d’Imbalance et les prix de marché (notamment le prix Intraday).
+Every 15 minutes, a trader can voluntarily create a **positive or negative imbalance** between the portfolio’s production and consumption. This imbalance is then settled by the grid operator at the **imbalance price**. By carefully choosing the imbalance, the trader can **profit from arbitrage** between this imbalance price and market prices (especially the Intraday price).
 
-Trois cas de figure principaux peuvent se présenter :
+Three main cases can occur:
 
-1. **Créer un déséquilibre positif (surproduction volontaire)** :  
-   Cela revient à injecter plus que nécessaire sur le réseau. Si le prix d’Imbalance est **supérieur** au prix auquel on aurait vendu en Intraday, alors c’est une décision rentable.
-   ➝ Il fallait **vendre via l’Imbalance**.
+1. **Create a positive imbalance (voluntary overproduction):**  
+   This means injecting more power than required into the grid. If the imbalance price is **higher** than the Intraday selling price, this is profitable.  
+   ➝ **Sell through the imbalance**.
 
-2. **Créer un déséquilibre négatif (sous-production volontaire)** :  
-   Cela revient à injecter moins que prévu. Si le prix d’Imbalance est **inférieur** au prix auquel on aurait acheté en Intraday, alors c’est également gagnant.  
-   ➝ Il fallait **acheter via l’Imbalance**.
+2. **Create a negative imbalance (voluntary underproduction):**  
+   This means injecting less than expected. If the imbalance price is **lower** than the Intraday purchase price, this is also profitable.  
+   ➝ **Buy through the imbalance**.
 
-3. **Ne rien faire (rester équilibré)** :  
-   Dans les cas où l’arbitrage est défavorable (spread faible ou contre-productif), la meilleure décision est de **ne pas créer de déséquilibre**, et simplement solder sa position sur le marché Intraday.
+3. **Do nothing (stay balanced):**  
+   If arbitrage is unfavorable (low or negative spread), the best decision is **not to create an imbalance** and simply close the position on the Intraday market.
 
-L’objectif de ce projet est donc de **modéliser, à chaque pas de temps, la meilleure action à prendre** (vendre, acheter ou rester neutre), en fonction des données disponibles :  
-prévisions de charge (`load_fcst`), prévisions de production (`solar_fcst`, `wind_fcst`), production réelle (`load_real`, `solar_real`, `wind_real`, `nuclear_real`, `fossil_gas_real`), historiques de prix (`ID_QH_VWAP`, `imb_price_pos`, `imb_price_neg`), niveaux de réserves (`afrr_up`, `afrr_down`, `mfrr_up`, `mfrr_down`), et déséquilibres précédents (`imb_volume`, `imbalance_status`).
+The objective of this project is to **model, at each timestep, the optimal action** (sell, buy, or stay neutral) based on available data:  
+load forecasts (`load_fcst`), production forecasts (`solar_fcst`, `wind_fcst`), actual production (`load_real`, `solar_real`, `wind_real`, `nuclear_real`, `fossil_gas_real`), price history (`ID_QH_VWAP`, `imb_price_pos`, `imb_price_neg`), reserve levels (`afrr_up`, `afrr_down`, `mfrr_up`, `mfrr_down`), and previous imbalances (`imb_volume`, `imbalance_status`).
 
-C’est un problème **décisionnel** avant d’être un problème de régression pure : il ne s’agit pas seulement de prédire un prix, mais de **choisir une action qui maximise le gain** à la lumière des règles réelles du marché de l’énergie.
+This is fundamentally a **decision-making problem** rather than a pure regression one: the goal is not just to predict a price, but to **choose the action that maximizes profit** under real market rules.
 
-## Étapes de ce projet
+## Project Steps
 
-### 1. Construction de la pipeline
+### 1. Pipeline Construction
 
-Ce projet a été conçu pour reproduire de manière réaliste le raisonnement d’un desk Intraday, avec une forte exigence de cohérence métier à chaque étape.
+This project was designed to realistically replicate the reasoning of an Intraday trading desk, with a strong focus on business logic consistency at each stage.
 
-#### 1.a : Préparation des données et création de variables explicatives
+#### 1.a: Data Preparation and Feature Engineering
 
-Une **ingénierie de features** poussée a été mise en place pour exploiter au maximum les informations disponibles :
+Extensive **feature engineering** was implemented to fully exploit the available information:
 
-- **Erreurs de prévision** : écart entre prévisions et valeurs réelles (`load_err`, `solar_err`, `wind_err`),
-- **Indicateurs de réserve** : agrégation des capacités de réserve disponibles (`afrr_cover_ratio`, `mfrr_cover_ratio`),
-- **État de déséquilibre du réseau** : construction d’un indicateur synthétique (`imbalance_status`) indiquant si les déséquilibres étaient bien couverts par les réserves,
-- **Spreads d’arbitrage** : calculs des opportunités entre les prix de marché (`spread_long`, `spread_short`),
-- **Historique du comportement marché** : création d’une variable de spread historique pondérée (`historical_spread`),
-- **Encodage temporel** : ajout de variables comme l’heure, le jour de la semaine, le mois, etc.,
-- **Lagging** : ajout de décalages temporels sur les variables clés pour modéliser les dynamiques (`*_lagged_4/5/6`).
+- **Forecast errors:** difference between forecasts and actuals (`load_err`, `solar_err`, `wind_err`),
+- **Reserve indicators:** aggregation of available reserve capacity (`afrr_cover_ratio`, `mfrr_cover_ratio`),
+- **Grid imbalance state:** synthetic indicator (`imbalance_status`) showing whether imbalances were covered by reserves,
+- **Arbitrage spreads:** calculated opportunities between market prices (`spread_long`, `spread_short`),
+- **Market behavior history:** weighted historical spread variable (`historical_spread`),
+- **Temporal encoding:** features like hour, weekday, month, etc.,
+- **Lagging:** time-lagged variables to capture dynamics (`*_lagged_4/5/6`).
 
-Toutes ces variables ont été soigneusement sélectionnées pour refléter les signaux qu’un trader aurait en temps réel.
+All these variables were carefully selected to reflect the signals a trader would have in real time.
 
-#### 1.b : Normalisation
+#### 1.b: Normalization
 
-Les variables ont été standardisées via un `StandardScaler`, une étape essentielle pour stabiliser l’apprentissage du modèle de deep learning utilisé ensuite.
+Variables were standardized with `StandardScaler`, a crucial step to stabilize the training of the deep learning model.
 
-#### 1.c : Séparation temporelle des données
+#### 1.c: Temporal Data Splitting
 
-Les données ont été divisées en **jeu d’entraînement** (jusqu’à fin 2024) et **jeu de test** (à partir de janvier 2025), afin de garantir une séparation chronologique stricte. 
-En entraînement, une validation croisée par `TimeSeriesSplit` (5 folds) a été utilisée, pour respecter l’ordre temporel des données (on ne regarde jamais le futur).
+Data was split into a **training set** (until end of 2024) and a **test set** (from January 2025 onward), ensuring strict chronological separation.  
+During training, a `TimeSeriesSplit` (5 folds) was used to respect the time order (no future leakage).
 
-#### 1.d : Gestion des valeurs manquantes
+#### 1.d: Missing Data Handling
 
-Certaines colonnes critiques comportaient des données manquantes qu’il a fallu traiter avec soin :
+Some key columns contained missing values and were treated carefully:
 
-- `load_fcst` (prévision de charge) : imputée via **SARIMA** bidirectionnel pour capter la forte saisonnalité journalière,
-- `solar_fcst`, `wind_fcst`, `solar_real`, `wind_real` (production) : interpolées par la méthode temporelle `interpolate(method='time')`, suffisante du fait de leur continuité horaire,
-- Les valeurs résiduelles manquantes sur les autres colonnes ont été comblées par un **forward fill** (`ffill`) pour éviter toute fuite de données futures.
+- `load_fcst` (load forecast): imputed with **bidirectional SARIMA** to capture strong daily seasonality,
+- `solar_fcst`, `wind_fcst`, `solar_real`, `wind_real` (production): interpolated with `interpolate(method='time')` due to their continuous nature,
+- Remaining missing values were filled using **forward fill** (`ffill`) to prevent future data leakage.
 
-Ces choix ont été faits pour garantir que chaque ligne utilisée en modélisation représente fidèlement l'information réellement disponible à l’instant t.
+These choices ensure that each row used for modeling accurately reflects the information available at time *t*.
 
-### 2. Modélisation et apprentissage
+### 2. Modeling and Training
 
-#### 2.a : Formulation du problème
+#### 2.a: Problem Formulation
 
-Dans une logique d’aide à la décision, le but est de prédire le **volume à engager** en fonction du signal d’arbitrage identifié sur les prix d’équilibrage.  
-La variable cible `target_volume` est définie comme :
+From a decision-support perspective, the goal is to predict the **volume to commit** based on the arbitrage signal in imbalance prices.  
+The target variable `target_volume` is defined as:
 
-- `+10` MW si le spread long (`spread_long`) est positif et justifie une **vente** au prix d'équilibrage,
-- `-10` MW si le spread short (`spread_short`) est positif et justifie un **achat** au prix d'équilibrage,
-- `0` sinon.
+- `+10` MW if the long spread (`spread_long`) is positive, justifying a **sell** at the imbalance price,
+- `-10` MW if the short spread (`spread_short`) is positive, justifying a **buy** at the imbalance price,
+- `0` otherwise.
 
-Le modèle doit donc apprendre **à estimer le volume optimal à engager**, entre -10 et +10 MW, sur la base des signaux disponibles.
+The model must learn to **estimate the optimal volume to commit**, ranging from -10 to +10 MW, based on available signals.
 
-#### 2.b : Architecture du modèle
+#### 2.b: Model Architecture
 
-Le modèle principal repose sur un **réseau de neurones fully connected** en PyTorch :
+The main model is a **fully connected neural network** implemented in PyTorch:
 
-- Entrée : les variables explicatives normalisées (voir section 1.a),
-- 2 couches cachées avec `ReLU` (128 puis 32 neurones),
-- Une couche de sortie avec `Tanh`, multipliée par 10 pour sortir des valeurs entre -10 et 10,
-- Optimiseur : `Adam`,
-- Fonction de coût : `MSELoss` (Mean Squared Error), car le problème reste formulé comme une **régression continue**.
+- Input: normalized explanatory variables (see section 1.a),
+- 2 hidden layers with `ReLU` (128 then 32 neurons),
+- Output layer with `Tanh`, scaled by 10 to output between -10 and 10,
+- Optimizer: `Adam`,
+- Loss function: `MSELoss` (Mean Squared Error), as the problem is formulated as a **continuous regression**.
 
-Une tentative a été faite avec une fonction de coût personnalisée **asymétrique**, pénalisant davantage les **contre-sens** (prédiction d’une position contraire au signal optimal), mais au détriment de la précision globale.  
-Le modèle original a donc été conservé.
+A custom **asymmetric loss** penalizing incorrect directional signals was tested but reduced overall accuracy.  
+The original model was therefore retained.
 
-#### 2.c : Entraînement
+#### 2.c: Training
 
-L’apprentissage est réalisé avec `TimeSeriesSplit` (5 folds) pour chaque segment temporel, avec :
+Training was performed with `TimeSeriesSplit` (5 folds) on each temporal segment, using:
 
-- 20 époques d'entraînement,
-- Batch size : 64,
-- Apprentissage sur le passé uniquement, validation sur le futur (logique métier respectée).
+- 20 training epochs,
+- Batch size: 64,
+- Training on past data only, validating on future data (business logic respected).
 
-### 3. Évaluation des performances
+### 3. Performance Evaluation
 
-L’évaluation du modèle a été centrée sur **la qualité des décisions prises** et leur **impact financier simulé**.
+Model evaluation focused on **decision quality** and its **simulated financial impact**.
 
-#### 3.a : PnL réalisé vs PnL optimal
+#### 3.a: Realized PnL vs Optimal PnL
 
-Pour chaque prédiction, le **PnL réalisé** est calculé selon les règles suivantes :
+For each prediction, **realized PnL** is computed as:
 
-- Si le modèle **vend** (`prediction > 0`), le gain est `spread_long × prediction`,
-- Si le modèle **achète** (`prediction < 0`), le gain est `-spread_short × prediction`,
-- Sinon, le gain est nul.
+- If the model **sells** (`prediction > 0`), profit = `spread_long × prediction`,
+- If the model **buys** (`prediction < 0`), profit = `-spread_short × prediction`,
+- Otherwise, profit = 0.
 
-Le **PnL optimal** est défini comme le gain maximal possible si on avait parfaitement suivi le spread identifié (`target_volume` appliqué sur le bon spread).
+**Optimal PnL** is defined as the maximum possible profit if the ideal decision had been taken (`target_volume` on the correct spread).
 
-Le ratio `sum(PnL réalisé) / sum(PnL optimal)` donne la **performance de captation** du modèle, ici d’environ **62.55 %**, un résultat encourageant.
+The ratio `sum(realized PnL) / sum(optimal PnL)` gives the model’s **capture performance**, which reached about **62.55%**, a promising result.
 
-#### 3.b : Analyse qualitative des décisions
+#### 3.b: Qualitative Decision Analysis
 
-Chaque prédiction est classée dans l’une des 5 catégories suivantes, permettant d’évaluer la pertinence des décisions du modèle dans une logique métier :
+Each prediction is categorized into one of five types to assess decision relevance in a trading context:
 
-| Type de décision             | Description                                                             | Nombre de cas | Pourcentage |
-|-----------------------------|-------------------------------------------------------------------------|---------------|-------------|
-| Bonne prédiction            | Bonne prise de position, dans le bon sens du spread                     | 6163          | 70.09 %     |
-| Opportunité manquée         | Aucune action du modèle alors qu’un spread exploitable était présent    | 378           | 4.30 %      |
-| Mauvaise prise de position  | Position prise sans opportunité de spread significatif                  | 294           | 3.34 %      |
-| Contre-sens                 | Prise de position dans le **sens opposé** au spread observé             | 1941          | 22.07 %     |
-| Neutre                      | Aucune action du modèle, et aucun spread exploitable                    | 17            | 0.19 %      |
+| Decision Type              | Description                                                             | Cases  | Percentage |
+|---------------------------|-------------------------------------------------------------------------|--------|------------|
+| Good prediction          | Correct position taken, aligned with spread direction                   | 6163   | 70.09 %    |
+| Missed opportunity       | No action taken despite an exploitable spread                           | 378    | 4.30 %     |
+| Unnecessary position     | Position taken without a significant spread                             | 294    | 3.34 %     |
+| Wrong-way position       | Position taken in the **opposite direction** of the observed spread     | 1941   | 22.07 %    |
+| Neutral                  | No action taken and no exploitable spread                               | 17     | 0.19 %     |
 
-Cette typologie donne une **lecture intuitive des erreurs du modèle**, et permet d’identifier les cas critiques comme les **contre-sens**, fortement pénalisants économiquement.
+This classification provides an **intuitive view of the model’s errors** and highlights critical cases like **wrong-way trades**, which are particularly costly.
